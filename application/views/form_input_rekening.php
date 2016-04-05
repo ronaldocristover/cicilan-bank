@@ -5,7 +5,7 @@
 	<title>Simulasi Cicilan</title>
 </head>
 <body>
-	<form action="<?php echo base_url('test_ocbc/process') ?>" method="post">
+	<form action="<?php echo base_url('test_ocbc/process_input_rekening') ?>" method="post">
 		<table>
 		  <tr>
 		    <td>No. Rekening</td>
