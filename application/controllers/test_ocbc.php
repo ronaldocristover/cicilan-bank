@@ -75,6 +75,51 @@ class Test_ocbc extends CI_Controller {
 		$this->close_table();
 	}
 
+	public function input_pembayaran()
+	{
+		$this->load->view('form_pembayaran');
+	}
+
+	public function process_pembayaran()
+	{
+		$tanggal_pembayaran = date('Y-m-d', strtotime($this->input->post('tanggal_pembayaran')));
+		$besar_pembayaran = $this->input->post('besar_pembayaran');
+		$keterangan = $this->input->post('keterangan');
+
+		$data = array(
+				'tanggal_pembayaran' => $tanggal_pembayaran,
+				'keterangan'  => $keterangan,
+				'besar_pembayaran' => $besar_pembayaran
+			);
+		$this->db->insert('pembayaran', $data);
+
+		if ($this->db->affected_rows() > 0) {
+			echo "Sukses menambahkan data pembayaran";
+		}
+
+		$listing_data = $this->db->get('pembayaran')->result();
+
+		echo "<table border=1>
+			<thead>
+				<tr> 
+					<th>Tanggal Pembayaran</th>
+					<th>Keterangan</th>
+					<th>Besar Pembayaran</th>
+				</tr>
+			</thead>
+			<tbody>";
+		foreach ($listing_data as $key ) {
+			echo "<tr>";
+				echo "<td>".$key->tanggal_pembayaran."</td>";
+				echo "<td>".$key->keterangan."</td>";
+				echo "<td>".$key->besar_pembayaran."</td>";
+			echo "</tr>";
+		}
+		$this->close_table();
+
+		echo anchor(base_url('test_ocbc/input_pembayaran'), 'Kembali ke Input Data Pembayaran', 'color=red');
+	}
+
 	public function backup_process()
 	{
 		$pokok = 80000000;
@@ -131,6 +176,19 @@ class Test_ocbc extends CI_Controller {
 	{
 		echo "</tbody>
 		</table>";
+	}
+
+	public function cetak_kartu()
+	{
+		$this->load->view('form_cetak');
+	}
+
+	public function proses_cetak_kartu()
+	{
+		$tanggal = $this->input->post('tanggal');
+
+		$sql = "";
+
 	}
 
 }
