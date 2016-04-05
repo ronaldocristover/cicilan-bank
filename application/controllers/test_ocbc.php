@@ -1,5 +1,4 @@
-<?php
-defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Test_ocbc extends CI_Controller {
 
@@ -9,7 +8,7 @@ class Test_ocbc extends CI_Controller {
 	}
 	public function index()
 	{
-		$this->load->view('form');
+		$this->load->view('menu');
 	}
 
 	public function test()
@@ -23,8 +22,16 @@ class Test_ocbc extends CI_Controller {
 		$angsuran_total = $angsuran_bunga + $angsuran_pokok; //2973086.66878
 	}
 
+	public function jadwal_angsuran()
+	{
+		$this->load->view('form');
+	}
 	public function process()
 	{
+
+		$no_rekening = $this->input->post('no_rekening');
+		$nama = $this->input->post('nama');
+		$angsuran_ke = $this->input->post('angsuran_ke');
 		$pokok 	= $this->input->post('plafond');
 		$tenor 	= $this->input->post('jangka_waktu');
 		$persen_bunga = $this->input->post('persen_bunga');
@@ -32,6 +39,18 @@ class Test_ocbc extends CI_Controller {
 		$time 	= strtotime($this->input->post('tanggal_realisasi'));
 		$perubahan_harga = $this->input->post('jumlah_perubahan_harga');
 
+		// input data ke data_rekening
+		$this->db->insert('data_rekening', array(
+				'no_rekening' => $no_rekening,
+				'nama' => $nama, 
+				'tanggal_realisasi' => date("Y-m-d", $time),
+				'plafond' => $pokok,
+				'jangka_waktu' => $tenor,
+				'jml_perubahan_harga' => $perubahan_harga,
+				'mulai_angsuran_ke' => $angsuran_ke,
+				'persen_bunga' => $persen_bunga
+
+			));
 		// $pokok = 80000000;
 		// $tenor = 36;
 		// $rate = (20/12/100); //0.0166666666667 ok
@@ -69,7 +88,21 @@ class Test_ocbc extends CI_Controller {
 				echo "<td>".$angsuran_bunga."</td>";
 				echo "<td>".($angsuran_bunga + $angsuran_pokok)."</td>";
 				echo "<td>".($rate*100*12)."</td>";
+
+				$data = array(
+						'bulan' => $i,
+						'nama' => $nama,
+						'no_rekening' => $no_rekening,
+						'tanggal_angsuran' => date("Y-m-d", strtotime("+$i month", $time)),
+						'saldo_pokok' => ($pokok - $angsuran_pokok),
+						'angsuran_pokok' =>  $angsuran_pokok,
+						'angsuran_bunga' => $angsuran_bunga,
+						'angsuran_total' => ($angsuran_bunga + $angsuran_pokok),
+						'bunga' => ($rate*100*12)
+					);
+				$this->db->insert('jadwal_angsuran', $data);
 				$pokok = ($pokok - $angsuran_pokok);
+
 			echo "</tr>";
 		}
 		$this->close_table();
@@ -82,6 +115,7 @@ class Test_ocbc extends CI_Controller {
 
 	public function process_pembayaran()
 	{
+		$no_rekening = $this->input->post('no_rekening');
 		$tanggal_pembayaran = date('Y-m-d', strtotime($this->input->post('tanggal_pembayaran')));
 		$besar_pembayaran = $this->input->post('besar_pembayaran');
 		$keterangan = $this->input->post('keterangan');
@@ -184,11 +218,57 @@ class Test_ocbc extends CI_Controller {
 	}
 
 	public function proses_cetak_kartu()
-	{
-		$tanggal = $this->input->post('tanggal');
+	{	
+		$no_rekening = '111';
+		$tanggal1 = '2016-04-05';
+		$tanggal2 = '2016-07-05';
+		$tenor = $this->db->get_where('data_rekening', array('no_rekening' => $no_rekening))->row();
+		echo "<table border=1>
+			<thead>
+				<tr> 
+					<th>Tanggal</th>
+					<th>Keterangan Transaksi</th>
+					<th>Debet</th>
+					<th>Kredit</th>
+					<th>Saldo</th>
+				</tr>
+			</thead>
+			<tbody>";
+		echo "<tr>
+				<td>".$tenor->tanggal_realisasi."</td>
+				<td>Realisasi Pinjaman</td>
+				<td>".number_format($tenor->plafond)."</td>
+				<td>0</td>
+				<td>".number_format($tenor->plafond)."</td>
+			  </tr>";
 
-		$sql = "";
+	  $sqlCustom = "(select ifnull(keterangan,0) as keterangan , tanggal_pembayaran, besar_pembayaran, no_rekening  from pembayaran p where p.no_rekening = '$no_rekening' and tanggal_pembayaran between '$tanggal1' and '$tanggal2')
+		union
+		(select ifnull(bulan,0) as keterangan ,tanggal_angsuran, angsuran_bunga, no_rekening from jadwal_angsuran j where j.no_rekening = '$no_rekening' and tanggal_angsuran between '$tanggal1' and '$tanggal2') order by tanggal_pembayaran asc";
 
+		$customData = $this->db->query($sqlCustom)->result();
+		$counter = $tenor->plafond;
+
+		foreach ($customData as $key ) {
+			echo "<tr>";
+				echo "<td>".$key->tanggal_pembayaran."</td>";
+				if ($key->keterangan == 0 || $key->keterangan == '0') {
+					echo "<td>Angsuran</td>";
+					echo "<td>0</td>";
+					$kredit = $key->besar_pembayaran;
+					echo "<td>".number_format($kredit)."</td>";
+					$counter  = $counter - $kredit;
+				}else{
+					echo "<td>Pembebanan Bunga</td>";
+					$debit = $key->besar_pembayaran;
+					echo "<td>".number_format($debit)."</td>";
+					echo "<td>0</td>";
+					$counter  = $counter + $debit;
+				}
+				echo "<td>".number_format($counter)."</td>";
+			echo "</tr>";
+		}
+		$this->close_table();
 	}
 
 }
