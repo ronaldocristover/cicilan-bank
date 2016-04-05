@@ -5,12 +5,99 @@ class Test_ocbc extends CI_Controller {
 	public function __construct()
 	{
 		parent::__construct();
+		echo "<style>";
+		echo "table tr:nth-child(even) {
+    background-color: #eee;
+}
+table tr:nth-child(odd) {
+    background-color: #fff;
+}
+table th {
+    color: white;
+    background-color: #6F79BD;
+}
+table, th, td {
+    border: 1px solid black !important;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 15px;
+}
+";
+		echo "</style>";
 	}
 	public function index()
 	{
 		$this->load->view('menu');
 	}
 
+	public function input_data_rekening()
+	{
+		$this->load->view('form_input_rekening');
+	}
+
+	public function process_input_rekening()
+	{
+		$no_rekening = $this->input->post('no_rekening');
+		$nama = $this->input->post('nama');
+		$angsuran_ke = $this->input->post('angsuran_ke');
+		$pokok 	= $this->input->post('plafond');
+		$tenor 	= $this->input->post('jangka_waktu');
+		$persen_bunga = $this->input->post('persen_bunga');
+		$rate 	= ($persen_bunga/12/100);
+		$time 	= strtotime($this->input->post('tanggal_realisasi'));
+		$perubahan_harga = $this->input->post('jumlah_perubahan_harga');
+
+		// input data ke data_rekening
+		$this->db->insert('data_rekening', array(
+				'no_rekening' => $no_rekening,
+				'nama' => $nama, 
+				'tanggal_realisasi' => date("Y-m-d", $time),
+				'plafond' => $pokok,
+				'jangka_waktu' => $tenor,
+				'jml_perubahan_harga' => $perubahan_harga,
+				'mulai_angsuran_ke' => $angsuran_ke,
+				'persen_bunga' => $persen_bunga
+
+			));
+		echo "Sukses melakukan input data... ";
+		echo "<a href='".base_url()."'>kembali?</a>";
+	}
+
+	public function load_data_rekening()
+	{
+		echo "<table border=1>
+			<thead>
+				<tr> 
+					<th>No Rekening</th>
+					<th>Nama</th>
+					<th>Tanggal Realisasi</th>
+					<th>Plafond</th>
+					<th>Jangka Waktu</th>
+					<th>Jumlah Perubahan Harga</th>
+					<th>Mulai angsuran ke</th>
+					<th>Persen Bunga</th>
+				</tr>
+			</thead>
+			<tbody>";
+		$ret = $this->db->get('data_rekening')->result();
+		foreach ($ret as $key) {
+			echo "<tr>";
+				echo "<td>".$key->no_rekening."</td>";
+				echo "<td>".$key->nama."</td>";
+				echo "<td>".$key->tanggal_realisasi."</td>";
+				echo "<td>".$key->plafond."</td>";
+				echo "<td>".$key->jangka_waktu."</td>";
+				echo "<td>".$key->jml_perubahan_harga."</td>";
+				echo "<td>".$key->mulai_angsuran_ke."</td>";
+				echo "<td>".$key->persen_bunga."</td>";
+			echo "</tr>";
+		}
+		$this->close_table();
+		echo br().br();
+		echo "Sukses melakukan menampilkan data.. ";
+		echo "<a href='".base_url()."'>kembali?</a>";
+	}
 	public function test()
 	{
 		// simulasi hardcode
@@ -106,11 +193,41 @@ class Test_ocbc extends CI_Controller {
 			echo "</tr>";
 		}
 		$this->close_table();
+		echo "<br><br><br>";
+		echo "Sukses menampikan data angsuran... ";
+		echo "<a href='".base_url()."'>kembali?</a>";
 	}
 
 	public function input_pembayaran()
 	{
 		$this->load->view('form_pembayaran');
+	}
+
+	public function load_data_pembayaran()
+	{
+		echo "<table border=1>
+			<thead>
+				<tr> 
+					<th>Tanggal Pembayaran</th>
+					<th>Besar Pembayaran</th>
+					<th>Keterangan</th>
+					<th>No. Rekening</th>
+				</tr>
+			</thead>
+			<tbody>";
+		$ret = $this->db->get('pembayaran')->result();
+		foreach ($ret as $key) {
+			echo "<tr>";
+				echo "<td>".$key->tanggal_pembayaran."</td>";
+				echo "<td>".$key->besar_pembayaran."</td>";
+				echo "<td>".$key->keterangan."</td>";
+				echo "<td>".$key->no_rekening."</td>";
+			echo "</tr>";
+		}
+		$this->close_table();
+		echo br().br();
+		echo "Sukses melakukan menampilkan data.. ";
+		echo "<a href='".base_url()."'>kembali?</a>";
 	}
 
 	public function process_pembayaran()
@@ -219,9 +336,18 @@ class Test_ocbc extends CI_Controller {
 
 	public function proses_cetak_kartu()
 	{	
-		$no_rekening = '111';
-		$tanggal1 = '2016-04-05';
-		$tanggal2 = '2016-07-05';
+		$no_rekening = $this->input->post('no_rekening');
+		$tanggal1 = $this->input->post('tanggal1');
+		$tanggal2 = $this->input->post('tanggal2');
+		$nama = $this->db->get_where('data_rekening', array('no_rekening' => $no_rekening))->row()->nama;
+		// $no_rekening = '111';
+		// $tanggal1 = '2016-04-05';
+		// $tanggal2 = '2016-07-05';
+		echo "Mencetak Tanggal : ". $tanggal1 .'  s/d  ' . $tanggal2;
+		echo "<br><br>";
+		echo "No Rekening : " . $no_rekening;
+		echo "<br>";
+		echo "Nama: " . $nama;
 		$tenor = $this->db->get_where('data_rekening', array('no_rekening' => $no_rekening))->row();
 		echo "<table border=1>
 			<thead>
@@ -269,6 +395,9 @@ class Test_ocbc extends CI_Controller {
 			echo "</tr>";
 		}
 		$this->close_table();
+		echo br().br();
+		echo "Sukses melakukan menampilkan data.. ";
+		echo "<a href='".base_url()."'>kembali?</a>";
 	}
 
 }

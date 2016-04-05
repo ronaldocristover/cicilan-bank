@@ -38,7 +38,7 @@
 |
 */
 
-$route['default_controller'] = "welcome";
+$route['default_controller'] = "test_ocbc";
 $route['404_override'] = '';
 
 
